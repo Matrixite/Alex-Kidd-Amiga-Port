@@ -1,0 +1,29 @@
+name: Scorpion diagnostic fast
+
+on:
+  push:
+    paths:
+      - '.github/workflows/scorpion-diagnostic-fast.yml'
+
+jobs:
+  inspect:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Scorpion managed assembly
+        shell: pwsh
+        run: |
+          $url='https://raw.githubusercontent.com/earok/scorpion-editor-experimental/main/Editor/Scorpion%20Editor%20-%202026.0_Data/Managed/Assembly-CSharp.dll'
+          Invoke-WebRequest -Uri $url -OutFile Assembly-CSharp.dll
+      - name: Install ILSpy command line
+        shell: pwsh
+        run: dotnet tool install --global ilspycmd
+      - name: Decompile and inspect build hooks
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path decompiled | Out-Null
+          ilspycmd -p -o decompiled Assembly-CSharp.dll
+          Write-Host '=== Command line related references ==='
+          Get-ChildItem decompiled -Recurse -Filter *.cs | Select-String -Pattern 'GetCommandLineArgs|command.?line|batchmode|nographics' -CaseSensitive:$false | Select-Object -First 300
+          Write-Host '=== ADF / Trackdisk / Export references ==='
+          Get-ChildItem decompiled -Recurse -Filter *.cs | Select-String -Pattern 'ADF|Trackdisk|trackdisk|Export.*Amiga|Build.*Amiga|exe2adf|BuildADF|CreateADF|ExportProject|BuildProject' -CaseSensitive:$false | Select-Object -First 600
