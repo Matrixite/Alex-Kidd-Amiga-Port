@@ -1,0 +1,127 @@
+name: Build WinUAE ADF
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-winuae-adf.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore stable v5.2 project
+        shell: pwsh
+        run: python restore_project.py
+
+      - name: Switch build copy to A1200 AGA trackdisk
+        shell: pwsh
+        run: |
+          $p = Get-Content project.sproject -Raw | ConvertFrom-Json
+          $p.TargetPlatform = 'amiga_aga_trackdisk'
+          $p.Recompile = $true
+          $p | ConvertTo-Json -Depth 100 | Set-Content project.sproject -Encoding UTF8
+          Get-Content project.sproject
+
+      - name: Get Scorpion Editor 2026
+        shell: pwsh
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/earok/scorpion-editor-experimental.git scorpion-src
+          Push-Location scorpion-src
+          git sparse-checkout set Editor
+          git checkout
+          Pop-Location
+          if (!(Test-Path 'scorpion-src/Editor/Scorpion Editor - 2026.0.exe')) { throw 'Scorpion Editor executable not found' }
+
+      - name: Build small Mono.Cecil patcher
+        shell: pwsh
+        run: |
+          dotnet new console -n ScorpionAutoBuild -o patcher --framework net8.0
+          Push-Location patcher
+          dotnet add package Mono.Cecil --version 0.11.6
+          @'
+          using System;
+          using System.Linq;
+          using Mono.Cecil;
+          using Mono.Cecil.Cil;
+
+          if (args.Length != 1) throw new Exception("Usage: patcher <Assembly-CSharp.dll>");
+          string path = args[0];
+          string backup = path + ".original";
+          System.IO.File.Copy(path, backup, true);
+
+          var rp = new ReaderParameters { ReadWrite = false, InMemory = true };
+          var asm = AssemblyDefinition.ReadAssembly(path, rp);
+          var m = asm.MainModule;
+          var manager = m.Types.First(t => t.Name == "Manager");
+          var pm = m.Types.First(t => t.Name == "ProjectManager");
+          var singleton = m.Types.First(t => t.Name == "Singleton`1");
+          var finished = manager.Methods.First(x => x.Name == "FinishedLoading" && !x.HasParameters);
+          var doAction = pm.Methods.First(x => x.Name == "DoAction" && x.Parameters.Count == 1 && x.Parameters[0].ParameterType.FullName == "System.String");
+          var getter = singleton.Properties.First(p => p.Name == "Instance").GetMethod;
+
+          var gi = new GenericInstanceType(singleton);
+          gi.GenericArguments.Add(pm);
+          var getInst = new MethodReference(getter.Name, pm, gi) {
+              HasThis = false,
+              ExplicitThis = false,
+              CallingConvention = getter.CallingConvention
+          };
+
+          var il = finished.Body.GetILProcessor();
+          var rets = finished.Body.Instructions.Where(i => i.OpCode == OpCodes.Ret).ToList();
+          foreach (var ret in rets) {
+              il.InsertBefore(ret, il.Create(OpCodes.Call, getInst));
+              il.InsertBefore(ret, il.Create(OpCodes.Ldstr, "compile"));
+              il.InsertBefore(ret, il.Create(OpCodes.Callvirt, doAction));
+          }
+          asm.Write(path);
+          Console.WriteLine($"Patched {finished.FullName} to auto-run ProjectManager.DoAction(compile)");
+          '@ | Set-Content Program.cs -Encoding UTF8
+          dotnet build -c Release
+          Pop-Location
+
+      - name: Patch Scorpion for unattended compile
+        shell: pwsh
+        run: |
+          $dll = (Resolve-Path 'scorpion-src/Editor/Scorpion Editor - 2026.0_Data/Managed/Assembly-CSharp.dll').Path
+          dotnet patcher/bin/Release/net8.0/ScorpionAutoBuild.dll $dll
+
+      - name: Compile AGA trackdisk ADF
+        shell: pwsh
+        run: |
+          $editor = (Resolve-Path 'scorpion-src/Editor/Scorpion Editor - 2026.0.exe').Path
+          $proj = (Resolve-Path 'project.sproject').Path
+          $log = Join-Path $PWD 'scorpion-unattended.log'
+          Write-Host "Launching $editor"
+          $proc = Start-Process -FilePath $editor -ArgumentList @("`"$proj`"", '-batchmode', '-nographics', '-logFile', "`"$log`"") -PassThru
+          $deadline = (Get-Date).AddMinutes(12)
+          $adf = $null
+          while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 5
+            $adf = Get-ChildItem -Path output -Recurse -Filter *.adf -ErrorAction SilentlyContinue | Where-Object { $_.Length -eq 901120 } | Select-Object -First 1
+            if ($adf) { break }
+            if ($proc.HasExited) { break }
+          }
+          if (!$proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+          if (Test-Path $log) { Get-Content $log -Tail 300 }
+          if (!$adf) {
+            Write-Host '=== Build log ==='
+            if (Test-Path build.log) { Get-Content build.log -Tail 500 }
+            Write-Host '=== Output files ==='
+            Get-ChildItem output -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length
+            throw 'Scorpion did not produce a valid 901120-byte ADF'
+          }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $adf.FullName 'dist/AlexKidd_Amiga_A1200_AGA_v5.2.adf'
+          Get-FileHash 'dist/AlexKidd_Amiga_A1200_AGA_v5.2.adf' -Algorithm SHA256 | Format-List
+          Write-Host "ADF built: $($adf.FullName) ($($adf.Length) bytes)"
+
+      - name: Upload WinUAE ADF
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlexKidd-Amiga-A1200-AGA-v5.2-ADF
+          path: dist/AlexKidd_Amiga_A1200_AGA_v5.2.adf
+          if-no-files-found: error
