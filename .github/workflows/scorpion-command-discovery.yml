@@ -1,0 +1,29 @@
+name: Scorpion command discovery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/scorpion-command-discovery.yml'
+
+jobs:
+  inspect:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and decompile Scorpion assembly
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/earok/scorpion-editor-experimental/main/Editor/Scorpion%20Editor%20-%202026.0_Data/Managed/Assembly-CSharp.dll' -OutFile Assembly-CSharp.dll
+          dotnet tool install --global ilspycmd
+          New-Item -ItemType Directory -Force -Path decompiled | Out-Null
+          ilspycmd -p -o decompiled Assembly-CSharp.dll
+      - name: Discover project commands and action method
+        shell: pwsh
+        run: |
+          Write-Host '=== Commands property references ==='
+          Get-ChildItem decompiled -Recurse -Filter *.cs | Select-String -Pattern '\.Commands|Commands\b|ProjectCommand|ProjectAction|ButtonAction' | Select-Object -First 500
+          Write-Host '=== Around ProjectManager action switch start ==='
+          $a=Get-Content decompiled/ProjectManager.cs
+          for($i=330;$i -le 455;$i++){ Write-Host ("{0}: {1}" -f $i,$a[$i-1]) }
+          Write-Host '=== Project entity ==='
+          Get-ChildItem decompiled -Recurse -Filter '*.cs' | Where-Object {$_.Name -match 'Project'} | Select-Object -First 30 FullName
