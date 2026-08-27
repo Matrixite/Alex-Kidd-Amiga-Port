@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/build-winuae-adf.yml'
+      - 'restore_project.py'
 
 jobs:
   build:
