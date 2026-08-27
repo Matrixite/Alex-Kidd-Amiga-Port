@@ -1,137 +1,181 @@
 # Alex Kidd in the Enchanted Castle — Amiga Port
 
-An in-progress **Amiga 1200 / AGA** port of *Alex Kidd in the Enchanted Castle*, rebuilt in **Scorpion Engine** from analysis of the original Mega Drive game.
+This is my work-in-progress port of **Alex Kidd in the Enchanted Castle** to the **Amiga 1200 / AGA**, using **Scorpion Engine**.
 
-> **Current stable baseline: v5.2**  
-> The later v5.3.x building-wall parallax experiments were deliberately rolled back because they disturbed previously-correct graphics and gameplay.
+The aim is to get the Amiga version looking and playing as close to the original Mega Drive game as I can, while rebuilding the game piece by piece rather than just approximating it.
 
-## Stable project download / restoration
+At the moment most of the work has been focused on **Rookietown / Stage 1**, Alex himself, collision, enemies, chests, camera movement and getting the original graphics into Scorpion correctly.
 
-The full stable v5.2 Scorpion project is stored in this repository as a verified split archive under `stable-v5.2/`. This avoids including the original Mega Drive ROM and preserves the complete project snapshot, including the binary graphics assets.
+> **Current stable version: v5.2**
+>
+> I tried a few different ways of adding the building-wall parallax after this, but they caused other parts of the level to break. I rolled those experiments back rather than leave the project in a worse state, so v5.2 is the clean baseline going forward.
 
-To reconstruct the project files in a clone, run:
+## Getting the project
+
+The complete stable v5.2 Scorpion project is stored in `stable-v5.2/` as a split archive.
+
+I did it this way so I could keep the complete project snapshot, including its binary graphics files, without putting the original Mega Drive ROM in the repository.
+
+After cloning the repo, run:
 
 ```bash
 python3 restore_project.py
 ```
 
-The script joins the 12 archive parts, verifies SHA-256 `1e534df005bd62337f3de8062ec64846d69f3a9a218d54d1c27ef6d49f0a7fed`, and extracts the stable project into the repository directory. The archive contains 199 project files. No full Mega Drive ROM is included.
+That will join the 12 archive parts, check the SHA-256 hash and extract the project into the repository folder.
 
-## Project status
+The restored snapshot contains **199 project files**.
 
-The project is not a finished full-game port yet. The current focus is **Rookietown / Stage 1**, Alex's movement and animation, collision, enemies, chests, camera behaviour, title presentation and ROM-derived graphics.
+The expected SHA-256 is:
 
-### Current stable work
+```text
+1e534df005bd62337f3de8062ec64846d69f3a9a218d54d1c27ef6d49f0a7fed
+```
 
-- Amiga 1200 / AGA Scorpion project opens from `project.sproject` after restoring the project archive.
-- Rookietown uses the corrected **96 × 28** ROM-derived level layout.
-- Stage 1 map streams use the corrected Mega Drive map decompression logic.
-- 16×16 metatiles use the corrected quadrant order **TL, TR, BL, BR**.
-- Stage 1 tile/GID ordering was rebuilt so buildings, trees and asymmetric graphics join correctly.
-- AGA palette/transparency work has been added for more faithful ROM colours.
-- Alex can move both directions and the camera supports **backtracking**.
-- ROM-derived standing, walking, jumping, crawling and punching work is present.
-- Standing and crawling punch handling are separated so jumping does not incorrectly fall into crawl behaviour.
-- ROM-derived angel/death animation work is present.
-- Enemy collision/death handling and punch-to-defeat logic have been added.
-- Rookietown enemy placement has been reconstructed from ROM object data and corrected for coordinate/origin issues.
-- Chests are interactive: Alex can pass through their sides while standing on their tops as one-way platforms.
-- ROM-derived chest reward handling has been added.
-- Grey-wall collision prevents Alex walking through the walls.
-- Main floor collision uses a top-surface/platform model rather than one large solid rectangle.
-- Lowered/dipped Rookietown floor sections are walkable: Alex can drop into them and stand on the lower floor.
-- Camera framing/floor visibility fixes are included.
-- ROM title/intro extraction and title flicker/parser fixes are included.
+## Where the port is at now
 
-## Progress history
+Rookietown is now using the proper **96 × 28** layout decoded from the original game data, rather than the earlier guessed version.
 
-| Version / phase | Progress |
+A lot of the work so far has been fixing small things that make a big difference when the level is actually running. These are the main parts that are currently working or have had substantial work done:
+
+- corrected Rookietown map layout from the Mega Drive game data
+- corrected map decompression
+- corrected 16×16 metatile assembly order
+- corrected buildings, trees and other asymmetric graphics
+- improved AGA palette and transparency handling
+- Alex can move left and right and backtrack through the level
+- camera movement has been adjusted so going back through an area works properly
+- standing, walking, jumping, crawling and punching use ROM-derived animation work
+- standing punch and crawling punch are handled separately
+- jumping no longer incorrectly drops into the crawl animation
+- ROM-derived angel/death sequence work
+- enemy collision and punch-to-defeat behaviour
+- enemy placement reconstructed from the original object data
+- interactive chests
+- Alex can walk through the sides of chests but stand on the tops
+- chest reward handling
+- grey wall collision
+- corrected floor collision
+- lowered sections of the road can actually be walked down into
+- camera/floor framing fixes
+- title and intro extraction work
+- title-screen flicker and parser fixes
+
+It is **not a complete game yet**. There is still a lot to do, but Stage 1 is now a much better base to build the rest of the port from.
+
+## Progress so far
+
+I have kept the version history below because it gives a useful picture of how the port has developed and also makes it easier to tell when a particular fix was introduced.
+
+| Version / phase | What changed |
 |---|---|
-| v0.9 | Initial Rookietown object coordinate correction. |
-| v1.0 | Further object-coordinate alignment fixes. |
-| v1.1 | Corrected ROM object origins / spawn placement. |
-| v1.4 | Amiga 1200 AGA compiler compatibility fixes. |
-| v1.5 | Additional AGA compiler/build fixes. |
-| v1.6 | Default icon / launch handling fix. |
-| v1.9 | Exact-runtime ROM palette work. |
-| v2.0 | AGA visual transparency fixes. |
-| v2.1 | Rookietown ROM palette correction. |
-| v2.2 | Initial Rookietown tile-order correction. |
-| v2.3 | ROM death-animation work. |
+| v0.9 | First Rookietown object-coordinate corrections. |
+| v1.0 | More object-position alignment fixes. |
+| v1.1 | Corrected object origins and spawn positions. |
+| v1.4 | Amiga 1200 AGA compiler compatibility work. |
+| v1.5 | More AGA build/compiler fixes. |
+| v1.6 | Default icon and launch handling fix. |
+| v1.9 | ROM palette work. |
+| v2.0 | AGA transparency fixes. |
+| v2.1 | Rookietown palette correction. |
+| v2.2 | First Rookietown tile-order correction. |
+| v2.3 | Death-animation work from the original game. |
 | v2.4 | Enemy collision and player-death behaviour. |
-| v2.5 | ROM angel death sequence. |
+| v2.5 | Angel death sequence. |
 | v2.6 | Crawl-control fixes. |
 | v2.7 | Crawl attack-direction/compiler fix. |
-| v2.8–v3.0 | Camera floor framing, parser and floor-graphics corrections. |
-| v3.1 | ROM floor collision pass. |
+| v2.8–v3.0 | Camera framing, parser fixes and floor-graphics corrections. |
+| v3.1 | Floor collision pass. |
 | v3.2 | Rookietown collision reconstruction. |
-| v3.3 | Proper ROM crawl behaviour. |
+| v3.3 | Correct crawl behaviour. |
 | v3.4 | Jump and chest collision fixes. |
 | v3.5 | One-way chest platform behaviour. |
 | v3.6 | Original floor graphics restored. |
 | v3.7 | Grey-wall collision. |
-| v3.8 | Exact ROM punch work. |
-| v3.9 | Leftward backtracking / camera behaviour. |
-| v4.0 | ROM title intro integration. |
+| v3.8 | Punch animation/work from the original game. |
+| v3.9 | Leftward backtracking and camera fixes. |
+| v4.0 | Original title intro integration. |
 | v4.1 | Title-screen flicker fixes. |
 | v4.2 | Startup parser fix. |
-| v4.3 | Title animation/static-title stability work. |
-| v4.4 | ROM enemy punch/kill behaviour. |
-| v4.5 / v4.5.1 | ROM chest rewards and reward corrections. |
-| v4.6 | Rookietown layout restoration attempt. |
-| v4.7 | Correct ROM map decoder and full 96×28 layout rebuild. |
-| v4.8 | Graphic tile-order investigation. |
+| v4.3 | More title animation/static-title stability work. |
+| v4.4 | Enemy punch/kill behaviour. |
+| v4.5 / v4.5.1 | Chest rewards and reward corrections. |
+| v4.6 | First attempt at restoring the full Rookietown layout. |
+| v4.7 | Correct map decoder and full 96×28 layout rebuild. |
+| v4.8 | Further graphics tile-order investigation. |
 | v4.9 | Scorpion tileset import/GID correction. |
-| v5.0 | Corrected building/tree metatile assembly (**TL, TR, BL, BR**). |
-| v5.1 | Floor collision changed to top-surface/platform behaviour. |
-| **v5.2** | **Current stable state:** lowered floor dips are open and walkable with lower standable surfaces. |
-| v5.3.x | Experimental building-wall parallax work; **reverted and excluded from the stable baseline**. |
+| v5.0 | Fixed building/tree metatile assembly order to **TL, TR, BL, BR**. |
+| v5.1 | Changed the main floor to top-surface/platform collision. |
+| **v5.2** | **Current stable version.** Lowered road sections are open and walkable with proper lower surfaces. |
+| v5.3.x | Building-wall parallax experiments. These were rolled back because they caused regressions elsewhere. |
 
-## Important Rookietown technical notes
+## A few useful technical notes
 
-### ROM map decoding
+### Rookietown map decoding
 
-Rookietown's two compressed map streams were decoded using the behaviour of the original 68000 routine rather than the earlier guessed decoder. The logical map dimensions are **96 metatiles × 28 metatiles**, or **2,688 entries per map plane**.
+One of the bigger breakthroughs was working out the actual Rookietown map decoder instead of relying on the earlier guessed format.
+
+The level is **96 metatiles wide and 28 metatiles high**, which works out at **2,688 entries for each map plane**.
+
+The original game uses two compressed map streams. Rebuilding those properly fixed a lot of the layout problems that were present in the earlier versions of the port.
 
 ### Metatile order
 
-A major visual problem was caused by assembling each 16×16 metatile with the wrong 8×8 quadrant order. The stable renderer uses:
+Another problem that took a while to track down was the order of the four 8×8 pieces inside each 16×16 metatile.
+
+The correct order is:
 
 ```text
 Top-left     Top-right
 Bottom-left  Bottom-right
 ```
 
-or **TL, TR, BL, BR**. This is particularly visible on palm trees, roofs, doors, windows and building edges.
+or:
+
+```text
+TL, TR, BL, BR
+```
+
+Getting this wrong was why things like palm trees, roofs, windows, doors and building edges looked scrambled even though the correct graphics were being used.
 
 ### Collision
 
-- normal street surface: top-only/platform-style collision
-- lowered street sections: open above, with a lower walkable surface
-- grey walls/boundaries: solid where required
-- chests: passable from the side, standable from above
+The current Stage 1 collision setup is roughly:
 
-## Building / running
+- normal road surface uses top-only/platform-style collision
+- lowered road sections have an open top and a lower walkable floor
+- grey walls and boundaries are solid where they need to be
+- chests can be passed through from the side but stood on from above
+
+This is much closer to how the original game behaves than the earlier version where large parts of the floor were treated as one solid block.
+
+## Building and running it
 
 1. Clone or download this repository.
-2. Run `python3 restore_project.py` to restore the complete stable v5.2 project files.
-3. Install a compatible recent version of **Scorpion Engine / Scorpion Editor 2026.x**.
+2. Run `python3 restore_project.py`.
+3. Install a compatible recent **Scorpion Engine / Scorpion Editor 2026.x** build.
 4. Open `project.sproject`.
-5. Select the **Amiga AGA** target and build/test Rookietown.
+5. Select the **Amiga AGA** target.
+6. Build or test Rookietown from there.
 
-## Not finished yet
+## What still needs doing
 
-- building-wall parallax effect — the v5.3.x experiments were reverted
-- remaining stages beyond Rookietown
-- complete enemy/boss/game-event behaviour
-- complete audio/music reproduction
-- final full-game polish
-- final WHDLoad/release packaging
+There is plenty left on the list. The main jobs at the moment are:
 
-Future work should preserve the v5.2 baseline and make isolated changes so working movement, graphics, collision and camera behaviour do not regress.
+- work out the correct building-wall parallax without breaking the working level
+- finish the remaining stages after Rookietown
+- complete enemy and boss behaviour
+- finish game events and interactions
+- reproduce more of the original music and sound
+- more gameplay polishing and accuracy work
+- final Amiga release / WHDLoad packaging
 
-## ROM / copyright note
+From this point on I want to keep **v5.2 as the known-good baseline** and make changes in smaller isolated steps. A few of the later experiments showed how easy it is to fix one visual effect and accidentally break movement, layering or collision somewhere else.
 
-The repository does **not** include a complete Mega Drive ROM image. Development/reference data was produced while analysing a user-supplied copy of the original game. You should own the original game/ROM used for further extraction or verification.
+## ROM and copyright note
 
-This is a fan-made preservation/porting project and is not affiliated with or endorsed by SEGA.
+This repository does **not** contain a complete Mega Drive ROM.
+
+The port has been developed by analysing the original game and using extracted/reference data where needed. If you are doing your own extraction or verification, you should use a copy of the game that you legally own.
+
+This is a fan-made port/preservation project. It is not affiliated with or endorsed by SEGA.
