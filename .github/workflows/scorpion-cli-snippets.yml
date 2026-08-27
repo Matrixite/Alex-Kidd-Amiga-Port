@@ -1,0 +1,33 @@
+name: Scorpion CLI snippets
+
+on:
+  push:
+    paths:
+      - '.github/workflows/scorpion-cli-snippets.yml'
+
+jobs:
+  inspect:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and decompile Scorpion assembly
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/earok/scorpion-editor-experimental/main/Editor/Scorpion%20Editor%20-%202026.0_Data/Managed/Assembly-CSharp.dll' -OutFile Assembly-CSharp.dll
+          dotnet tool install --global ilspycmd
+          New-Item -ItemType Directory -Force -Path decompiled | Out-Null
+          ilspycmd -p -o decompiled Assembly-CSharp.dll
+      - name: Print CLI and ADF code snippets
+        shell: pwsh
+        run: |
+          function Show-Range($path,$start,$end) {
+            Write-Host "=== $path lines $start-$end ==="
+            $a=Get-Content $path
+            for($i=$start;$i -le $end -and $i -le $a.Count;$i++){ Write-Host ("{0}: {1}" -f $i,$a[$i-1]) }
+          }
+          Show-Range 'decompiled/Manager.cs' 1030 1105
+          Show-Range 'decompiled/ProjectManager.cs' 450 530
+          Show-Range 'decompiled/ProjectManager.cs' 1160 1235
+          Show-Range 'decompiled/ProjectManager.cs' 1320 1410
+          Show-Range 'decompiled/SaveData.cs' 210 275
+          Show-Range 'decompiled/Assets.Scripts.Compiler/Compiler_Amiga.cs' 380 470
