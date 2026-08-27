@@ -97,7 +97,10 @@ jobs:
           $proj = (Resolve-Path 'project.sproject').Path
           $log = Join-Path $PWD 'scorpion-unattended.log'
           Write-Host "Launching $editor"
-          $proc = Start-Process -FilePath $editor -ArgumentList @("`"$proj`"", '-batchmode', '-nographics', '-logFile', "`"$log`"") -PassThru
+          # Scorpion is a Unity editor app. Keep graphics enabled so its normal
+          # project-load lifecycle reaches FinishedLoading, where the auto-build
+          # patch invokes ProjectManager.DoAction("compile").
+          $proc = Start-Process -FilePath $editor -ArgumentList @("`"$proj`"", '-logFile', "`"$log`"") -PassThru
           $deadline = (Get-Date).AddMinutes(12)
           $adf = $null
           while ((Get-Date) -lt $deadline) {
