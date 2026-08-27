@@ -1,0 +1,1 @@
+1e534df005bd62337f3de8062ec64846d69f3a9a218d54d1c27ef6d49f0a7fed  stable-v5.2.tar.xz
